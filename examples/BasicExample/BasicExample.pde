@@ -59,3 +59,9 @@ void setup() {
 void draw() {
   // Static sketch, no animation needed
 }
+
+void keyPressed() {
+  if (key == 's' || key == 'S') {
+    save("BasicExample.png");
+  }
+}
