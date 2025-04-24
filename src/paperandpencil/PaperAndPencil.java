@@ -69,8 +69,8 @@ public class PaperAndPencil {
      * @param diameter diameter of the circle
      * @param fade if true, applies a fade effect to the stroke
      */
-    public void pencilCircle(float centerX, float centerY, float diameter, boolean fade) {
-        pencilArc(centerX, centerY, diameter, 0, p.TWO_PI, fade);
+    public void circle(float centerX, float centerY, float diameter, boolean fade) {
+        arc(centerX, centerY, diameter, 0, p.TWO_PI, fade);
     }
 
     /**
@@ -83,7 +83,7 @@ public class PaperAndPencil {
      * @param endAngle ending angle in radians
      * @param fade if true, applies a fade effect to the stroke
      */
-    public void pencilArc(float centerX, float centerY, float diameter, float startAngle, float endAngle, boolean fade) {
+    public void arc(float centerX, float centerY, float diameter, float startAngle, float endAngle, boolean fade) {
         p.noStroke();
         float x, y;
         
@@ -115,7 +115,7 @@ public class PaperAndPencil {
      * @param y2 y-coordinate of the end point
      * @param fade if true, applies a fade effect from start to end
      */
-    public void pencilLine(float x1, float y1, float x2, float y2, boolean fade) {
+    public void line(float x1, float y1, float x2, float y2, boolean fade) {
         p.noStroke();
         if (!fade) {
             p.fill(pencilColor);
@@ -145,8 +145,8 @@ public class PaperAndPencil {
      * @param x2 x-coordinate of the end point
      * @param y2 y-coordinate of the end point
      */
-    public void pencilLine(float x1, float y1, float x2, float y2) {
-        pencilLine(x1, y1, x2, y2, false);
+    public void line(float x1, float y1, float x2, float y2) {
+        line(x1, y1, x2, y2, false);
     }
 
     /**
@@ -157,10 +157,10 @@ public class PaperAndPencil {
      * @param centerY y-coordinate of the circle center
      * @param diameter diameter of the circle
      */
-    public void fillPencilCircle(float centerX, float centerY, float diameter) {
+    public void fillCircle(float centerX, float centerY, float diameter) {
         float increment = printMode ? 1.3f : 1.2f;
         for (float d = 2; d < diameter; d += increment) {
-            pencilCircle(centerX, centerY, d, false);
+            circle(centerX, centerY, d, false);
         }
     }
 }

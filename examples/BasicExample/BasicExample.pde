@@ -31,28 +31,28 @@ void setup() {
   textAlign(CENTER);
   textSize(12);
   
-  // Top row: Lines
-  pp.pencilLine(margin, margin, margin + size, margin + size);
+  // 1st row: Lines
+  pp.line(margin, margin, margin + size, margin + size);
   labelText("Simple line", margin + size/2, margin + size + 20);
   
-  pp.pencilLine(2*margin + size, margin, 2*margin + 2*size, margin + size, true);
+  pp.line(2*margin + size, margin, 2*margin + 2*size, margin + size, true);
   labelText("Line with fade", 2*margin + size + size/2, margin + size + 20);
   
-  // Middle row: Circles
-  pp.pencilCircle(margin + size/2, 2*margin + size + size/2, size, false);
+  // 2nd row: Circles
+  pp.circle(margin + size/2, 2*margin + size + size/2, size, false);
   labelText("Simple circle", margin + size/2, 2*margin + 2*size + 20);
   
-  pp.pencilCircle(2*margin + size + size/2, 2*margin + size + size/2, size, true);
+  pp.circle(2*margin + size + size/2, 2*margin + size + size/2, size, true);
   labelText("Circle with fade", 2*margin + size + size/2, 2*margin + 2*size + 20);
   
-  pp.fillPencilCircle(3*margin + 2*size + size/2, 2*margin + size + size/2, size);
+  pp.fillCircle(3*margin + 2*size + size/2, 2*margin + size + size/2, size);
   labelText("Filled circle", 3*margin + 2*size + size/2, 2*margin + 2*size + 20);
   
-  // Bottom row: Arcs
-  pp.pencilArc(margin + size/2, 3*margin + 2*size + size/2, size, -QUARTER_PI, PI, false);
+  // 3rd row: Arcs
+  pp.arc(margin + size/2, 3*margin + 2*size + size/2, size, -QUARTER_PI, PI, false);
   labelText("Simple arc", margin + size/2, 3*margin + 3*size + 20);
   
-  pp.pencilArc(2*margin + size + size/2, 3*margin + 2*size + size/2, size, -QUARTER_PI, PI, true);
+  pp.arc(2*margin + size + size/2, 3*margin + 2*size + size/2, size, -QUARTER_PI, PI, true);
   labelText("Arc with fade", 2*margin + size + size/2, 3*margin + 3*size + 20);
 }
 
