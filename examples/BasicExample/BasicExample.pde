@@ -13,7 +13,7 @@ void labelText(String txt, float x, float y) {
 }
 
 void setup() {
-  size(600, 500, P2D);
+  size(500, 600, P2D);
   colorMode(HSB, 360, 100, 100, 100);
   
   pp = new PaperAndPencil(this);
@@ -54,6 +54,13 @@ void setup() {
   
   pp.arc(2*margin + size + size/2, 3*margin + 2*size + size/2, size, -QUARTER_PI, PI, true);
   labelText("Arc with fade", 2*margin + size + size/2, 3*margin + 3*size + 20);
+
+  // 4th row: Rectangles
+  pp.rect(margin, 4*margin + 3*size, size, size);
+  labelText("Simple rect", margin + size/2, 4*margin + 4*size + 20);
+
+  pp.fillRect(2*margin + size, 4*margin + 3*size, size, size);
+  labelText("Filled rect", 2*margin + size + size/2, 4*margin + 4*size + 20);
 }
 
 void draw() {

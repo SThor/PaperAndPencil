@@ -150,6 +150,33 @@ public class PaperAndPencil {
     }
 
     /**
+     * Draws a rectangle with a pencil-like effect.
+     * 
+     * @param leftX x-coordinate of the rectangle's top-left corner
+     * @param topY y-coordinate of the rectangle's top-left corner
+     * @param width width of the rectangle
+     * @param height height of the rectangle
+     */
+    public void rect(float leftX, float topY, float width, float height) {
+        line(leftX, topY, leftX+width, topY, false);
+        line(leftX, topY, leftX, topY+height, false);
+        line(leftX+width, topY, leftX+width, topY+height, false);
+        line(leftX, topY+height, leftX+width, topY+height, false);
+    }
+
+    public void fillRect(float leftX, float topY, float width, float height) {
+        float increment = 4f;//printMode ? 1.3f : 1.2f;
+        float centerX = leftX + (width / 2);
+        float centerY = topY + (height / 2);
+        // draw some bigger and bigger rectangles until the whole area is filled
+        for (float size = 2; size < Math.max(width, height); size += increment) {
+            float rectWidth = Math.min(size, width);
+            float rectHeight = Math.min(size, height);
+            rect(centerX - (rectWidth / 2), centerY - (rectHeight / 2), rectWidth, rectHeight);
+        }
+    }
+
+    /**
      * Fills a circle with concentric pencil circles to create a filled effect.
      * The spacing between circles is adjusted based on print mode.
      * 
