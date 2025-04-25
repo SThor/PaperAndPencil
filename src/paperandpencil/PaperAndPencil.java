@@ -73,6 +73,10 @@ public class PaperAndPencil {
         arc(centerX, centerY, diameter, 0, p.TWO_PI, fade);
     }
 
+    public void dot(float x, float y) {
+        p.circle(x + p.random(this.pencilSpread), y + p.random(this.pencilSpread), p.random(2));
+    }
+
     /**
      * Draws an arc with a pencil-like effect.
      * 
@@ -102,7 +106,7 @@ public class PaperAndPencil {
             
             x = centerX + diameter/2 * p.cos(theta);
             y = centerY + diameter/2 * p.sin(theta);
-            p.circle(x + p.random(2), y + p.random(2), p.random(2));
+            dot(x, y);
         }
     }
 
@@ -133,7 +137,7 @@ public class PaperAndPencil {
             
             x = p.lerp(x1, x2, amt);
             y = p.lerp(y1, y2, amt);
-            p.circle(x + p.random(2), y + p.random(2), p.random(2));
+            dot(x, y);
         }
     }
 
