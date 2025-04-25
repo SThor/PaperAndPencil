@@ -11,6 +11,7 @@ public class PaperAndPencil {
     PApplet p;
     int pencilColor;
     boolean printMode;
+    float pencilSpread;
     
     /**
      * Creates a new PaperAndPencil instance.
@@ -21,6 +22,7 @@ public class PaperAndPencil {
         this.p = p;
         this.pencilColor = p.color(0, 0, 0, 30);
         this.printMode = false;
+        this.pencilSpread = 2f;
     }
     
     /**
@@ -49,6 +51,19 @@ public class PaperAndPencil {
      */
     public void setPencilColor(int c) {
         this.pencilColor = c;
+    }
+
+    /**
+     * Gets the current pencil color.
+     * 
+     * @return The current pencil color
+     */
+    public int getPencilColor() {
+        return this.pencilColor;
+    }
+
+    public void setPencilSpread(float spread) {
+        this.pencilSpread = spread;
     }
 
     /**
