@@ -89,6 +89,8 @@ public class PaperAndPencil {
     }
 
     public void dot(float x, float y) {
+        p.noStroke();
+        p.fill(this.pencilColor);
         p.circle(x + p.random(this.pencilSpread), y + p.random(this.pencilSpread), p.random(2));
     }
 
