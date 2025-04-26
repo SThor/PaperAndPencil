@@ -151,18 +151,6 @@ public class PaperAndPencil {
     }
 
     /**
-     * Draws a line with a pencil-like effect.
-     * 
-     * @param x1 x-coordinate of the start point
-     * @param y1 y-coordinate of the start point
-     * @param x2 x-coordinate of the end point
-     * @param y2 y-coordinate of the end point
-     */
-    public void line(float x1, float y1, float x2, float y2) {
-        line(x1, y1, x2, y2, false);
-    }
-
-    /**
      * Draws a rectangle with a pencil-like effect.
      * 
      * @param leftX x-coordinate of the rectangle's top-left corner
@@ -304,17 +292,6 @@ public class PaperAndPencil {
             bezierSegment(x1, y1, cx1, cy1, cx2, cy2, x2, y2, fade, fadeStart, fadeEnd);
             currentSegment++;
         }
-    }
-
-    /**
-     * Draws a smooth spline through a series of points using connected bézier curves.
-     * This overload applies the fade effect to the entire spline when fade is true.
-     * 
-     * @param points Array of x,y coordinates in the format [x1,y1,x2,y2,...]. Must have at least 4 elements (2 points).
-     * @param fade if true, applies a fade effect along the entire spline
-     */
-    public void spline(float[] points, boolean fade) {
-        spline(points, fade, false);
     }
 
     /**
