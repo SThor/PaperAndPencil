@@ -12,11 +12,8 @@ void labelText(String txt, float x, float y) {
   text(txt, x, y);
 }
 
-void setup() {
-  size(450, 850, P2D);
-  colorMode(HSB, 360, 100, 100, 100);
-  
-  pp = new PaperAndPencil(this);
+void drawExample() {
+  background(360);  // Clear the canvas with white
   
   // Create paper background
   pp.paper();
@@ -32,7 +29,7 @@ void setup() {
   textSize(12);
   
   // 1st row: Lines
-  pp.line(margin, margin, margin + size, margin + size);
+  pp.line(margin, margin, margin + size, margin + size, false);
   labelText("Simple line", margin + size/2, margin + size + 20);
   
   pp.line(2*margin + size, margin, 2*margin + 2*size, margin + size, true);
@@ -86,7 +83,7 @@ void setup() {
     margin + 2*size/3, 6*margin + 5*size + 3*size/4,            // Third point
     margin + size, 6*margin + 5*size + size/2                   // Fourth point
   };
-  pp.spline(points, false);
+  pp.spline(points, false, false);
   labelText("Simple spline", margin + size/2, 6*margin + 6*size + 20);
 
   float[] fadePoints = {
@@ -108,12 +105,29 @@ void setup() {
   labelText("First segment fade", 3*margin + 2*size + size/2, 6*margin + 6*size + 20);
 }
 
-void draw() {
-  // Static sketch, no animation needed
+void setup() {
+  size(450, 850, P2D);
+  colorMode(HSB, 360, 100, 100, 100);
+  
+  pp = new PaperAndPencil(this);
+  
+  // Generate and save for each quality mode
+  pp.setQualityMode(PaperAndPencil.QualityMode.DRAFT);
+  drawExample();
+  save("BasicExample_DRAFT.png");
+  
+  pp.setQualityMode(PaperAndPencil.QualityMode.SCREEN);
+  drawExample();
+  save("BasicExample_SCREEN.png");
+  
+  pp.setQualityMode(PaperAndPencil.QualityMode.PRINT);
+  drawExample();
+  save("BasicExample_PRINT.png");
+  
+  // Exit after saving all versions
+  exit();
 }
 
-void keyPressed() {
-  if (key == 's' || key == 'S') {
-    save("BasicExample.png");
-  }
+void draw() {
+  // Static sketch, no animation needed
 }

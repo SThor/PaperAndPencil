@@ -14,6 +14,14 @@ public class PaperAndPencil {
     boolean printMode;
     float pencilSpread;
     
+    public enum QualityMode {
+        DRAFT,      // Fast rendering with fewer points
+        SCREEN,     // Normal screen quality
+        PRINT       // High quality for print output
+    }
+    
+    private QualityMode qualityMode = QualityMode.SCREEN;
+
     /**
      * Creates a new PaperAndPencil instance.
      * 
@@ -27,20 +35,85 @@ public class PaperAndPencil {
     }
     
     /**
+     * Sets the rendering quality mode
+     * @param mode DRAFT for fast preview, SCREEN for normal display, PRINT for high quality output
+     */
+    public void setQualityMode(QualityMode mode) {
+        this.qualityMode = mode;
+        this.printMode = (mode == QualityMode.PRINT); // Maintain backward compatibility
+    }
+    
+    /**
+     * Calculate increment size for drawing operations based on quality mode
+     */
+    private float getIncrement(float baseSize) {
+        float base;
+        switch(qualityMode) {
+            case DRAFT:
+                base = 0.4f;    // Fewer points for speed
+                break;
+            case PRINT:
+                base = 0.1f;    // Slightly denser for print
+                break;
+            case SCREEN:
+            default:
+                base = 0.15f;  // Normal density
+                break;
+        }
+        return base / baseSize;
+    }
+    
+    /**
+     * Calculate fill pattern increment based on quality mode
+     */
+    private float getFillIncrement() {
+        switch(qualityMode) {
+            case DRAFT:
+                return 3.0f;   // Larger gaps for speed
+            case PRINT:
+                return 0.8f;   // Tighter gaps for more solid fill
+            case SCREEN:
+            default:
+                return 1.2f;  // Normal gaps
+        }
+    }
+    
+    /**
+     * Calculate number of paper texture points based on quality mode
+     */
+    private int getPaperTexturePoints() {
+        switch(qualityMode) {
+            case DRAFT:
+                return 10000;
+            case SCREEN:
+            default:
+                return 100000;
+        }
+    }
+
+    /**
      * Creates a textured paper background effect by randomly placing small colored circles
      * and then applying a lightening effect to create a natural paper texture.
      */
     public void paper() {
+        // Skip paper texture in PRINT mode since we'll be printing to real paper
+        if (qualityMode == QualityMode.PRINT) {
+            return;
+        }
+
         p.noStroke();
-        for (int i = 0; i < 100000; ++i) {
-            p.fill(p.random(360), p.random(100), p.random(100), p.random(20));
+        int points = getPaperTexturePoints();
+        
+        for (int i = 0; i < points; ++i) {
+            p.fill(p.random(360), p.random(100f), p.random(100f), p.random(20f));
             float x = p.random(p.width);
             float y = p.random(p.height);
             p.circle(x, y, p.random(2));
         }
+        
         p.loadPixels();
         for (int i = 0; i < p.pixels.length; i += 1) {
-            p.pixels[i] = p.lerpColor(p.pixels[i], p.color(360), p.random(.5f));
+            p.pixels[i] = p.lerpColor(p.pixels[i], p.color(360), p.random(0.5f));
         }
         p.updatePixels();
     }
@@ -89,8 +162,23 @@ public class PaperAndPencil {
         arc(centerX, centerY, diameter, 0, PConstants.TWO_PI, fade);
     }
 
+    private float getPencilSpreadForMode() {
+        switch(qualityMode) {
+            case DRAFT:
+                return pencilSpread * 1.5f;  // More spread for faster, rougher preview
+            case PRINT:
+                return pencilSpread * 0.3f;  // Much less spread for cleaner print output
+            case SCREEN:
+            default:
+                return pencilSpread;        // Normal spread
+        }
+    }
+
     public void dot(float x, float y) {
-        p.circle(x + p.random(this.pencilSpread), y + p.random(this.pencilSpread), p.random(2));
+        float spread = getPencilSpreadForMode();
+        float size = qualityMode == QualityMode.PRINT ? 1.5f : p.random(2);
+        // Use the current fill settings instead of setting our own
+        p.circle(x + p.random(spread), y + p.random(spread), size);
     }
 
     /**
@@ -105,6 +193,10 @@ public class PaperAndPencil {
      * Sets the fill color with a specific alpha value while preserving the current color's other components
      */
     private void setFillWithAlpha(float alpha) {
+        // In print mode, increase contrast by using stronger alpha values
+        if (qualityMode == QualityMode.PRINT) {
+                        alpha = 0.2f + (alpha * 0.8f); // Minimum alpha of 0.2 for more solid lines
+        }
         p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
             p.brightness(pencilColor), p.alpha(pencilColor) * alpha);
     }
@@ -122,8 +214,21 @@ public class PaperAndPencil {
     public void arc(float centerX, float centerY, float diameter, float startAngle, float endAngle, boolean fade) {
         setupDrawingState();
         float x, y;
+        float baseIncrement;
+        switch(qualityMode) {
+            case DRAFT:
+                baseIncrement = 0.6f;
+                break;
+            case PRINT:
+                baseIncrement = 0.15f;
+                break;
+            case SCREEN:
+            default:
+                baseIncrement = 0.3f;
+                break;
+        }
         
-        for (float theta = startAngle; theta < endAngle; theta += 0.3f/diameter) {
+        for (float theta = startAngle; theta < endAngle; theta += baseIncrement/diameter) {
             if (fade) {
                 float fadeProgress = (theta - startAngle) / (endAngle - startAngle);
                 setFillWithAlpha(fadeProgress);
@@ -148,7 +253,7 @@ public class PaperAndPencil {
         setupDrawingState();
         
         float x, y;
-        float increment = 0.15f / PApplet.dist(x1, y1, x2, y2);
+        float increment = getIncrement(PApplet.dist(x1, y1, x2, y2));
         
         for (float amt = 0; amt < 1; amt += increment) {
             if (fade) {
@@ -177,10 +282,9 @@ public class PaperAndPencil {
     }
 
     public void fillRect(float leftX, float topY, float width, float height) {
-        float increment = 4f;//printMode ? 1.3f : 1.2f;
+        float increment = getFillIncrement();
         float centerX = leftX + (width / 2);
         float centerY = topY + (height / 2);
-        // draw some bigger and bigger rectangles until the whole area is filled
         for (float size = 2; size < Math.max(width, height); size += increment) {
             float rectWidth = Math.min(size, width);
             float rectHeight = Math.min(size, height);
@@ -190,14 +294,14 @@ public class PaperAndPencil {
 
     /**
      * Fills a circle with concentric pencil circles to create a filled effect.
-     * The spacing between circles is adjusted based on print mode.
+     * The spacing between circles is adjusted based on quality mode.
      * 
      * @param centerX x-coordinate of the circle center
      * @param centerY y-coordinate of the circle center
      * @param diameter diameter of the circle
      */
     public void fillCircle(float centerX, float centerY, float diameter) {
-        float increment = printMode ? 1.3f : 1.2f;
+        float increment = getFillIncrement();
         for (float d = 2; d < diameter; d += increment) {
             circle(centerX, centerY, d, false);
         }
@@ -217,20 +321,25 @@ public class PaperAndPencil {
     private void plotBezierCurve(float x1, float y1, float cx1, float cy1, 
                                 float cx2, float cy2, float x2, float y2, 
                                 boolean fade, float fadeStart, float fadeEnd) {
-        setupDrawingState();
+        p.noStroke(); // Always disable stroke
         
-        // Approximate curve length by using the polygon length of control points
         float approxLength = PApplet.dist(x1, y1, cx1, cy1) + 
                            PApplet.dist(cx1, cy1, cx2, cy2) + 
                            PApplet.dist(cx2, cy2, x2, y2);
         
-        // Scale increment based on approximate curve length and print mode
-        float increment = (printMode ? 0.075f : 0.15f) / approxLength;
+        float increment = getIncrement(approxLength);
+        
+        // If not fading, set the fill color once at the start
+        if (!fade) {
+            p.fill(pencilColor);
+        }
         
         for (float t = 0; t <= 1; t += increment) {
             if (fade) {
-                float alpha = calculateFadeAlpha(t, fadeStart, fadeEnd);
-                setFillWithAlpha(alpha);
+                float fadeProgress = fadeStart + (fadeEnd - fadeStart) * t;
+                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
+                    p.brightness(pencilColor), 
+                    p.alpha(pencilColor) * fadeProgress);
             }
             
             float x = p.bezierPoint(x1, cx1, cx2, x2, t);
