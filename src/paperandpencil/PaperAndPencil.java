@@ -89,8 +89,6 @@ public class PaperAndPencil {
     }
 
     public void dot(float x, float y) {
-        p.noStroke();
-        p.fill(this.pencilColor);
         p.circle(x + p.random(this.pencilSpread), y + p.random(this.pencilSpread), p.random(2));
     }
 
@@ -106,12 +104,8 @@ public class PaperAndPencil {
      */
     public void arc(float centerX, float centerY, float diameter, float startAngle, float endAngle, boolean fade) {
         p.noStroke();
+        p.fill(pencilColor);
         float x, y;
-        
-        // Set initial fill color if not fading
-        if (!fade) {
-            p.fill(pencilColor);
-        }
         
         for (float theta = startAngle; theta < endAngle; theta += 0.3f/diameter) {
             if (fade) {
@@ -138,9 +132,7 @@ public class PaperAndPencil {
      */
     public void line(float x1, float y1, float x2, float y2, boolean fade) {
         p.noStroke();
-        if (!fade) {
-            p.fill(pencilColor);
-        }
+        p.fill(pencilColor);
         
         float x, y;
         float increment = 0.15f / p.dist(x1, y1, x2, y2);
@@ -209,6 +201,50 @@ public class PaperAndPencil {
         float increment = printMode ? 1.3f : 1.2f;
         for (float d = 2; d < diameter; d += increment) {
             circle(centerX, centerY, d, false);
+        }
+    }
+
+    /**
+     * Draws a cubic Bézier curve with a pencil-like effect.
+     * 
+     * @param x1 x-coordinate of the start point
+     * @param y1 y-coordinate of the start point
+     * @param cx1 x-coordinate of the first control point
+     * @param cy1 y-coordinate of the first control point
+     * @param cx2 x-coordinate of the second control point
+     * @param cy2 y-coordinate of the second control point
+     * @param x2 x-coordinate of the end point
+     * @param y2 y-coordinate of the end point
+     * @param fade if true, applies a fade effect from start to end
+     */
+    public void bezier(float x1, float y1, float cx1, float cy1, 
+                      float cx2, float cy2, float x2, float y2, boolean fade) {
+        p.noStroke();
+        p.fill(pencilColor);
+        
+        // Approximate curve length by using the polygon length of control points
+        float approxLength = p.dist(x1, y1, cx1, cy1) + 
+                           p.dist(cx1, cy1, cx2, cy2) + 
+                           p.dist(cx2, cy2, x2, y2);
+        
+        // Scale increment based on approximate curve length
+        float increment = 0.15f / approxLength;
+        
+        // Use smaller increments for print mode
+        if (printMode) {
+            increment *= 0.5f;
+        }
+        
+        for (float t = 0; t <= 1; t += increment) {
+            if (fade) {
+                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
+                    p.brightness(pencilColor), 
+                    p.alpha(pencilColor) * t);
+            }
+            
+            float x = p.bezierPoint(x1, cx1, cx2, x2, t);
+            float y = p.bezierPoint(y1, cy1, cy2, y2, t);
+            dot(x, y);
         }
     }
 }

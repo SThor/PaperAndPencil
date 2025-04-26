@@ -13,7 +13,7 @@ void labelText(String txt, float x, float y) {
 }
 
 void setup() {
-  size(500, 600, P2D);
+  size(450, 700, P2D);
   colorMode(HSB, 360, 100, 100, 100);
   
   pp = new PaperAndPencil(this);
@@ -61,6 +61,24 @@ void setup() {
 
   pp.fillRect(2*margin + size, 4*margin + 3*size, size, size);
   labelText("Filled rect", 2*margin + size + size/2, 4*margin + 4*size + 20);
+
+  // 5th row: Bézier curves
+  float curveHeight = size/2;  // Control height of the curve
+
+  pp.bezier(margin, 5*margin + 4*size + size/2,           // Start point
+            margin + size/3, 5*margin + 4*size,           // Control point 1
+            margin + 2*size/3, 5*margin + 5*size,         // Control point 2
+            margin + size, 5*margin + 4*size + size/2,    // End point
+            false);                                       // No fade
+  labelText("Simple bezier", margin + size/2, 5*margin + 5*size + 20);
+
+  pp.bezier(2*margin + size, 5*margin + 4*size + size/2,           // Start point
+            2*margin + size + size/3, 5*margin + 4*size,           // Control point 1
+            2*margin + size + 2*size/3, 5*margin + 5*size,         // Control point 2
+            2*margin + 2*size, 5*margin + 4*size + size/2,         // End point
+            true);                                                 // With fade
+  labelText("Bezier with fade", 2*margin + size + size/2, 5*margin + 5*size + 20);
+  
 }
 
 void draw() {
