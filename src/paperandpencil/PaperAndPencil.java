@@ -190,12 +190,14 @@ public class PaperAndPencil {
     }
 
     /**
-     * Sets the fill color with a specific alpha value while preserving the current color's other components
+     * Sets the fill color with a specific alpha value while preserving the current color's other components.
+     * In print mode, applies contrast enhancement to make lights lighter and darks darker.
      */
     private void setFillWithAlpha(float alpha) {
-        // In print mode, increase contrast by using stronger alpha values
+        // In print mode, apply non-linear contrast enhancement
         if (qualityMode == QualityMode.PRINT) {
-                        alpha = 0.2f + (alpha * 0.8f); // Minimum alpha of 0.2 for more solid lines
+            // Apply curve to increase contrast - makes lights lighter and darks darker
+            alpha = (float)Math.pow(alpha, 1.5);
         }
         p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
             p.brightness(pencilColor), p.alpha(pencilColor) * alpha);
