@@ -247,4 +247,109 @@ public class PaperAndPencil {
             dot(x, y);
         }
     }
+
+    /**
+     * Draws a smooth spline through a series of points using connected bézier curves.
+     * The spline will pass through all given points while maintaining smooth transitions.
+     * 
+     * @param points Array of x,y coordinates in the format [x1,y1,x2,y2,...]. Must have at least 4 elements (2 points).
+     * @param fade if true, applies a fade effect (either on the whole spline or just the last segment)
+     * @param fadeFirstSegmentOnly if true and fade is true, only fades the first segment instead of the entire spline
+     */
+    public void spline(float[] points, boolean fade, boolean fadeFirstSegmentOnly) {
+        if (points.length < 4 || points.length % 2 != 0) {
+            return; // Need at least 2 points (4 coordinates) and even number of coordinates
+        }
+
+        int numSegments = (points.length - 2) / 2;
+        float currentSegment = 0;
+
+        // For each segment between points, calculate control points for smooth transition
+        for (int i = 0; i < points.length - 3; i += 2) {
+            float x0 = i > 0 ? points[i-2] : points[i];
+            float y0 = i > 0 ? points[i-1] : points[i+1];
+            float x1 = points[i];
+            float y1 = points[i+1];
+            float x2 = points[i+2];
+            float y2 = points[i+3];
+            float x3 = i < points.length - 4 ? points[i+4] : points[i+2];
+            float y3 = i < points.length - 4 ? points[i+5] : points[i+3];
+
+            // Calculate control points
+            float tension = 0.5f;
+            float cx1 = x1 + (x2 - x0) * tension;
+            float cy1 = y1 + (y2 - y0) * tension;
+            float cx2 = x2 - (x3 - x1) * tension;
+            float cy2 = y2 - (y3 - y1) * tension;
+
+            // Calculate fade parameters based on whether we're fading the whole spline or just the last segment
+            float fadeStart = 1;
+            float fadeEnd = 1;
+            
+            if (fade) {
+                if (fadeFirstSegmentOnly) {
+                    // Only fade if this is the first segment
+                    if (currentSegment == 0) {
+                        fadeStart = 0;
+                        fadeEnd = 1;
+                    }
+                } else {
+                    // Fade the entire spline
+                    fadeStart = currentSegment / numSegments;
+                    fadeEnd = (currentSegment + 1) / numSegments;
+                }
+            }
+            
+            // Draw the bezier curve segment with the appropriate fade range
+            bezierSegment(x1, y1, cx1, cy1, cx2, cy2, x2, y2, fade, fadeStart, fadeEnd);
+            currentSegment++;
+        }
+    }
+
+    /**
+     * Draws a smooth spline through a series of points using connected bézier curves.
+     * This overload applies the fade effect to the entire spline when fade is true.
+     * 
+     * @param points Array of x,y coordinates in the format [x1,y1,x2,y2,...]. Must have at least 4 elements (2 points).
+     * @param fade if true, applies a fade effect along the entire spline
+     */
+    public void spline(float[] points, boolean fade) {
+        spline(points, fade, false);
+    }
+
+    /**
+     * Internal method to draw a bezier segment with fade range control
+     */
+    private void bezierSegment(float x1, float y1, float cx1, float cy1, 
+                             float cx2, float cy2, float x2, float y2, 
+                             boolean fade, float fadeStart, float fadeEnd) {
+        p.noStroke();
+        p.fill(pencilColor);
+        
+        // Approximate curve length by using the polygon length of control points
+        float approxLength = p.dist(x1, y1, cx1, cy1) + 
+                           p.dist(cx1, cy1, cx2, cy2) + 
+                           p.dist(cx2, cy2, x2, y2);
+        
+        // Scale increment based on approximate curve length
+        float increment = 0.15f / approxLength;
+        
+        // Use smaller increments for print mode
+        if (printMode) {
+            increment *= 0.5f;
+        }
+        
+        for (float t = 0; t <= 1; t += increment) {
+            if (fade) {
+                float fadeProgress = fadeStart + (fadeEnd - fadeStart) * t;
+                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
+                    p.brightness(pencilColor), 
+                    p.alpha(pencilColor) * fadeProgress);
+            }
+            
+            float x = p.bezierPoint(x1, cx1, cx2, x2, t);
+            float y = p.bezierPoint(y1, cy1, cy2, y2, t);
+            dot(x, y);
+        }
+    }
 }

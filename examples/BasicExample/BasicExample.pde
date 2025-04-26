@@ -13,7 +13,7 @@ void labelText(String txt, float x, float y) {
 }
 
 void setup() {
-  size(450, 700, P2D);
+  size(450, 850, P2D);
   colorMode(HSB, 360, 100, 100, 100);
   
   pp = new PaperAndPencil(this);
@@ -78,7 +78,34 @@ void setup() {
             2*margin + 2*size, 5*margin + 4*size + size/2,         // End point
             true);                                                 // With fade
   labelText("Bezier with fade", 2*margin + size + size/2, 5*margin + 5*size + 20);
-  
+
+  // 6th row: Splines
+  float[] points = {
+    margin, 6*margin + 5*size + size/2,                         // First point
+    margin + size/3, 6*margin + 5*size + size/4,                // Second point
+    margin + 2*size/3, 6*margin + 5*size + 3*size/4,            // Third point
+    margin + size, 6*margin + 5*size + size/2                   // Fourth point
+  };
+  pp.spline(points, false);
+  labelText("Simple spline", margin + size/2, 6*margin + 6*size + 20);
+
+  float[] fadePoints = {
+    2*margin + size, 6*margin + 5*size + size/2,               // First point
+    2*margin + size + size/3, 6*margin + 5*size + size/4,      // Second point
+    2*margin + size + 2*size/3, 6*margin + 5*size + 3*size/4,  // Third point
+    2*margin + 2*size, 6*margin + 5*size + size/2              // Fourth point
+  };
+  pp.spline(fadePoints, true);
+  labelText("Full fade", 2*margin + size + size/2, 6*margin + 6*size + 20);
+
+  float[] firstSegmentFadePoints = {
+    3*margin + 2*size, 6*margin + 5*size + size/2,             // First point
+    3*margin + 2*size + size/3, 6*margin + 5*size + size/4,    // Second point
+    3*margin + 2*size + 2*size/3, 6*margin + 5*size + 3*size/4,// Third point
+    3*margin + 3*size, 6*margin + 5*size + size/2              // Fourth point
+  };
+  pp.spline(firstSegmentFadePoints, true, true);
+  labelText("First segment fade", 3*margin + 2*size + size/2, 6*margin + 6*size + 20);
 }
 
 void draw() {
