@@ -94,6 +94,22 @@ public class PaperAndPencil {
     }
 
     /**
+     * Sets up the common drawing state used across drawing methods
+     */
+    private void setupDrawingState() {
+        p.noStroke();
+        p.fill(pencilColor);
+    }
+
+    /**
+     * Sets the fill color with a specific alpha value while preserving the current color's other components
+     */
+    private void setFillWithAlpha(float alpha) {
+        p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
+            p.brightness(pencilColor), p.alpha(pencilColor) * alpha);
+    }
+
+    /**
      * Draws an arc with a pencil-like effect.
      * 
      * @param centerX x-coordinate of the arc center
@@ -104,16 +120,13 @@ public class PaperAndPencil {
      * @param fade if true, applies a fade effect to the stroke
      */
     public void arc(float centerX, float centerY, float diameter, float startAngle, float endAngle, boolean fade) {
-        p.noStroke();
-        p.fill(pencilColor);
+        setupDrawingState();
         float x, y;
         
         for (float theta = startAngle; theta < endAngle; theta += 0.3f/diameter) {
             if (fade) {
                 float fadeProgress = (theta - startAngle) / (endAngle - startAngle);
-                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
-                    p.brightness(pencilColor), 
-                    p.alpha(pencilColor) * fadeProgress);
+                setFillWithAlpha(fadeProgress);
             }
             
             x = centerX + diameter/2 * PApplet.cos(theta);
@@ -132,17 +145,14 @@ public class PaperAndPencil {
      * @param fade if true, applies a fade effect from start to end
      */
     public void line(float x1, float y1, float x2, float y2, boolean fade) {
-        p.noStroke();
-        p.fill(pencilColor);
+        setupDrawingState();
         
         float x, y;
         float increment = 0.15f / PApplet.dist(x1, y1, x2, y2);
         
         for (float amt = 0; amt < 1; amt += increment) {
             if (fade) {
-                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
-                    p.brightness(pencilColor), 
-                    p.alpha(pencilColor) * amt);
+                setFillWithAlpha(amt);
             }
             
             x = PApplet.lerp(x1, x2, amt);
@@ -207,8 +217,7 @@ public class PaperAndPencil {
     private void plotBezierCurve(float x1, float y1, float cx1, float cy1, 
                                 float cx2, float cy2, float x2, float y2, 
                                 boolean fade, float fadeStart, float fadeEnd) {
-        p.noStroke();
-        p.fill(pencilColor);
+        setupDrawingState();
         
         // Approximate curve length by using the polygon length of control points
         float approxLength = PApplet.dist(x1, y1, cx1, cy1) + 
@@ -221,8 +230,7 @@ public class PaperAndPencil {
         for (float t = 0; t <= 1; t += increment) {
             if (fade) {
                 float alpha = calculateFadeAlpha(t, fadeStart, fadeEnd);
-                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
-                    p.brightness(pencilColor), alpha);
+                setFillWithAlpha(alpha);
             }
             
             float x = p.bezierPoint(x1, cx1, cx2, x2, t);
