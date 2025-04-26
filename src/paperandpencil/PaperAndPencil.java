@@ -1,6 +1,7 @@
 package paperandpencil;
 
 import processing.core.PApplet;
+import processing.core.PConstants;
 
 /**
  * PaperAndPencil provides utilities for creating paper-like textures and pencil-like drawing effects
@@ -85,7 +86,7 @@ public class PaperAndPencil {
      * @param fade if true, applies a fade effect to the stroke
      */
     public void circle(float centerX, float centerY, float diameter, boolean fade) {
-        arc(centerX, centerY, diameter, 0, p.TWO_PI, fade);
+        arc(centerX, centerY, diameter, 0, PConstants.TWO_PI, fade);
     }
 
     public void dot(float x, float y) {
@@ -115,8 +116,8 @@ public class PaperAndPencil {
                     p.alpha(pencilColor) * fadeProgress);
             }
             
-            x = centerX + diameter/2 * p.cos(theta);
-            y = centerY + diameter/2 * p.sin(theta);
+            x = centerX + diameter/2 * PApplet.cos(theta);
+            y = centerY + diameter/2 * PApplet.sin(theta);
             dot(x, y);
         }
     }
@@ -135,7 +136,7 @@ public class PaperAndPencil {
         p.fill(pencilColor);
         
         float x, y;
-        float increment = 0.15f / p.dist(x1, y1, x2, y2);
+        float increment = 0.15f / PApplet.dist(x1, y1, x2, y2);
         
         for (float amt = 0; amt < 1; amt += increment) {
             if (fade) {
@@ -144,8 +145,8 @@ public class PaperAndPencil {
                     p.alpha(pencilColor) * amt);
             }
             
-            x = p.lerp(x1, x2, amt);
-            y = p.lerp(y1, y2, amt);
+            x = PApplet.lerp(x1, x2, amt);
+            y = PApplet.lerp(y1, y2, amt);
             dot(x, y);
         }
     }
@@ -210,9 +211,9 @@ public class PaperAndPencil {
         p.fill(pencilColor);
         
         // Approximate curve length by using the polygon length of control points
-        float approxLength = p.dist(x1, y1, cx1, cy1) + 
-                           p.dist(cx1, cy1, cx2, cy2) + 
-                           p.dist(cx2, cy2, x2, y2);
+        float approxLength = PApplet.dist(x1, y1, cx1, cy1) + 
+                           PApplet.dist(cx1, cy1, cx2, cy2) + 
+                           PApplet.dist(cx2, cy2, x2, y2);
         
         // Scale increment based on approximate curve length and print mode
         float increment = (printMode ? 0.075f : 0.15f) / approxLength;
