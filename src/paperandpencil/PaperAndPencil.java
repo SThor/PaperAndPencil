@@ -2,6 +2,7 @@ package paperandpencil;
 
 import processing.core.PApplet;
 import processing.core.PConstants;
+import processing.core.PGraphics;
 
 /**
  * PaperAndPencil provides utilities for creating paper-like textures and pencil-like drawing effects
@@ -13,6 +14,8 @@ public class PaperAndPencil {
     int pencilColor;
     boolean printMode;
     float pencilSpread;
+    PGraphics maskBuffer;
+    boolean useMask = false;
     
     public enum QualityMode {
         DRAFT,      // Fast rendering with fewer points
@@ -32,6 +35,42 @@ public class PaperAndPencil {
         this.pencilColor = p.color(0, 0, 0, 30);
         this.printMode = false;
         this.pencilSpread = 2f;
+    }
+
+    /**
+     * Initializes and returns the mask buffer for drawing.
+     * When drawing, the mask's alpha channel is used to determine the opacity of the pencil strokes:
+     * Anything transparent on the mask will allow the pencil strokes to show through.
+     * Anything opaque will block the pencil strokes.
+     * The opacity of the mask is set to 0 (fully transparent). 
+     * 
+     * The mask won't actually be used until useMask() is called.
+     * 
+     * @see #useMask()
+     * 
+     * @return The PGraphics object for the mask buffer
+     */
+    public PGraphics resetMask() {
+        if (this.maskBuffer == null) {
+            this.maskBuffer = p.createGraphics(p.width, p.height);
+        }
+        this.maskBuffer.beginDraw();
+        this.maskBuffer.clear();
+        this.useMask = false;
+        return this.maskBuffer;
+    }
+
+    /**
+     * Ends the mask drawing. From this point, the mask will be used to control the opacity of pencil strokes.
+     * resetMask() must be called first to create the mask buffer.
+     */
+    public void useMask() {
+        if (this.maskBuffer == null) {
+            System.err.println("Error: No mask buffer created. Call resetMask() first.");
+            return;
+        }
+        this.maskBuffer.endDraw();
+        this.useMask = true;
     }
     
     /**
@@ -136,6 +175,11 @@ public class PaperAndPencil {
         return this.pencilColor;
     }
 
+    /**
+     * Sets the spread of the pencil strokes. Higher values create a more textured effect.
+     * 
+     * @param spread The spread value (default is 2.0)
+     */
     public void setPencilSpread(float spread) {
         this.pencilSpread = spread;
     }
@@ -174,11 +218,45 @@ public class PaperAndPencil {
         }
     }
 
+    /**
+     * Draws a dot with a pencil-like effect at the specified coordinates, with random spread and optional masking.
+     * 
+     * @param x x-coordinate of the dot
+     * @param y y-coordinate of the dot
+     */
     public void dot(float x, float y) {
+        if (x < 0 || x >= p.width || y < 0 || y >= p.height) return;
+
+        float opacity = 1.0f;
+        if (useMask && maskBuffer != null) {
+            // Get the alpha channel value from the mask (0-255)
+            int maskAlpha = (maskBuffer.get((int)x, (int)y) >> 24) & 0xFF;
+            // Convert to 0-1 range and use it to scale our opacity
+            opacity = 1f - (maskAlpha / 255.0f);
+            if (opacity == 0) return; // Skip fully masked pixels
+        }
+
+        // Save current fill color
+        int originalFill = p.g.fillColor;
+
         float spread = getPencilSpreadForMode();
         float size = qualityMode == QualityMode.PRINT ? 1.5f : p.random(2);
-        // Use the current fill settings instead of setting our own
+
+        if (opacity < 1f) {
+            // Get the current fill color's components
+            float h = p.hue(pencilColor);
+            float s = p.saturation(pencilColor);
+            float b = p.brightness(pencilColor);
+            float a = p.alpha(pencilColor) * opacity; // Blend the alpha with mask opacity
+            
+            // Apply the modified alpha
+            p.fill(h, s, b, a);
+        }
+
         p.circle(x + p.random(spread), y + p.random(spread), size);
+        
+        // Restore original fill color
+        p.fill(originalFill);
     }
 
     /**
