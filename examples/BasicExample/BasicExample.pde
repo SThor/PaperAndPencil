@@ -95,7 +95,7 @@ void setup() {
     2*margin + size + 2*size/3, 6*margin + 5*size + 3*size/4,  // Third point
     2*margin + 2*size, 6*margin + 5*size + size/2              // Fourth point
   };
-  pp.spline(fadePoints, true);
+  pp.spline(fadePoints, true, false);
   labelText("Full fade", 2*margin + size + size/2, 6*margin + 6*size + 20);
 
   float[] firstSegmentFadePoints = {

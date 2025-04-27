@@ -151,18 +151,6 @@ public class PaperAndPencil {
     }
 
     /**
-     * Draws a line with a pencil-like effect.
-     * 
-     * @param x1 x-coordinate of the start point
-     * @param y1 y-coordinate of the start point
-     * @param x2 x-coordinate of the end point
-     * @param y2 y-coordinate of the end point
-     */
-    public void line(float x1, float y1, float x2, float y2) {
-        line(x1, y1, x2, y2, false);
-    }
-
-    /**
      * Draws a rectangle with a pencil-like effect.
      * 
      * @param leftX x-coordinate of the rectangle's top-left corner
@@ -205,6 +193,44 @@ public class PaperAndPencil {
     }
 
     /**
+     * Helper method to calculate fade alpha value based on progress
+     */
+    private float calculateFadeAlpha(float progress, float fadeStart, float fadeEnd) {
+        float fadeProgress = fadeStart + (fadeEnd - fadeStart) * progress;
+        return p.alpha(pencilColor) * fadeProgress;
+    }
+
+    /**
+     * Helper method to plot points along a Bézier curve with fade control
+     */
+    private void plotBezierCurve(float x1, float y1, float cx1, float cy1, 
+                                float cx2, float cy2, float x2, float y2, 
+                                boolean fade, float fadeStart, float fadeEnd) {
+        p.noStroke();
+        p.fill(pencilColor);
+        
+        // Approximate curve length by using the polygon length of control points
+        float approxLength = p.dist(x1, y1, cx1, cy1) + 
+                           p.dist(cx1, cy1, cx2, cy2) + 
+                           p.dist(cx2, cy2, x2, y2);
+        
+        // Scale increment based on approximate curve length and print mode
+        float increment = (printMode ? 0.075f : 0.15f) / approxLength;
+        
+        for (float t = 0; t <= 1; t += increment) {
+            if (fade) {
+                float alpha = calculateFadeAlpha(t, fadeStart, fadeEnd);
+                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
+                    p.brightness(pencilColor), alpha);
+            }
+            
+            float x = p.bezierPoint(x1, cx1, cx2, x2, t);
+            float y = p.bezierPoint(y1, cy1, cy2, y2, t);
+            dot(x, y);
+        }
+    }
+
+    /**
      * Draws a cubic Bézier curve with a pencil-like effect.
      * 
      * @param x1 x-coordinate of the start point
@@ -219,33 +245,16 @@ public class PaperAndPencil {
      */
     public void bezier(float x1, float y1, float cx1, float cy1, 
                       float cx2, float cy2, float x2, float y2, boolean fade) {
-        p.noStroke();
-        p.fill(pencilColor);
-        
-        // Approximate curve length by using the polygon length of control points
-        float approxLength = p.dist(x1, y1, cx1, cy1) + 
-                           p.dist(cx1, cy1, cx2, cy2) + 
-                           p.dist(cx2, cy2, x2, y2);
-        
-        // Scale increment based on approximate curve length
-        float increment = 0.15f / approxLength;
-        
-        // Use smaller increments for print mode
-        if (printMode) {
-            increment *= 0.5f;
-        }
-        
-        for (float t = 0; t <= 1; t += increment) {
-            if (fade) {
-                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
-                    p.brightness(pencilColor), 
-                    p.alpha(pencilColor) * t);
-            }
-            
-            float x = p.bezierPoint(x1, cx1, cx2, x2, t);
-            float y = p.bezierPoint(y1, cy1, cy2, y2, t);
-            dot(x, y);
-        }
+        plotBezierCurve(x1, y1, cx1, cy1, cx2, cy2, x2, y2, fade, 0, 1);
+    }
+
+    /**
+     * Internal method to draw a bezier segment with fade range control
+     */
+    private void bezierSegment(float x1, float y1, float cx1, float cy1, 
+                             float cx2, float cy2, float x2, float y2, 
+                             boolean fade, float fadeStart, float fadeEnd) {
+        plotBezierCurve(x1, y1, cx1, cy1, cx2, cy2, x2, y2, fade, fadeStart, fadeEnd);
     }
 
     /**
@@ -286,70 +295,19 @@ public class PaperAndPencil {
             float fadeStart = 1;
             float fadeEnd = 1;
             
-            if (fade) {
-                if (fadeFirstSegmentOnly) {
-                    // Only fade if this is the first segment
-                    if (currentSegment == 0) {
-                        fadeStart = 0;
-                        fadeEnd = 1;
-                    }
-                } else {
-                    // Fade the entire spline
+            if (fade && fadeFirstSegmentOnly && currentSegment == 0) {
+                // Use the simple bezier function for the first segment
+                bezier(x1, y1, cx1, cy1, cx2, cy2, x2, y2, true);
+            } else {
+                if (fade) {
+                    // Fade the entire spline or subsequent segments
                     fadeStart = currentSegment / numSegments;
                     fadeEnd = (currentSegment + 1) / numSegments;
                 }
+                // Draw the bezier curve segment with the appropriate fade range
+                bezierSegment(x1, y1, cx1, cy1, cx2, cy2, x2, y2, fade, fadeStart, fadeEnd);
             }
-            
-            // Draw the bezier curve segment with the appropriate fade range
-            bezierSegment(x1, y1, cx1, cy1, cx2, cy2, x2, y2, fade, fadeStart, fadeEnd);
             currentSegment++;
-        }
-    }
-
-    /**
-     * Draws a smooth spline through a series of points using connected bézier curves.
-     * This overload applies the fade effect to the entire spline when fade is true.
-     * 
-     * @param points Array of x,y coordinates in the format [x1,y1,x2,y2,...]. Must have at least 4 elements (2 points).
-     * @param fade if true, applies a fade effect along the entire spline
-     */
-    public void spline(float[] points, boolean fade) {
-        spline(points, fade, false);
-    }
-
-    /**
-     * Internal method to draw a bezier segment with fade range control
-     */
-    private void bezierSegment(float x1, float y1, float cx1, float cy1, 
-                             float cx2, float cy2, float x2, float y2, 
-                             boolean fade, float fadeStart, float fadeEnd) {
-        p.noStroke();
-        p.fill(pencilColor);
-        
-        // Approximate curve length by using the polygon length of control points
-        float approxLength = p.dist(x1, y1, cx1, cy1) + 
-                           p.dist(cx1, cy1, cx2, cy2) + 
-                           p.dist(cx2, cy2, x2, y2);
-        
-        // Scale increment based on approximate curve length
-        float increment = 0.15f / approxLength;
-        
-        // Use smaller increments for print mode
-        if (printMode) {
-            increment *= 0.5f;
-        }
-        
-        for (float t = 0; t <= 1; t += increment) {
-            if (fade) {
-                float fadeProgress = fadeStart + (fadeEnd - fadeStart) * t;
-                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
-                    p.brightness(pencilColor), 
-                    p.alpha(pencilColor) * fadeProgress);
-            }
-            
-            float x = p.bezierPoint(x1, cx1, cx2, x2, t);
-            float y = p.bezierPoint(y1, cy1, cy2, y2, t);
-            dot(x, y);
         }
     }
 }
