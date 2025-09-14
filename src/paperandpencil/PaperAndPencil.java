@@ -10,7 +10,7 @@ import processing.core.PGraphics;
  * randomness and imperfection to standard geometric shapes.
  */
 public class PaperAndPencil {
-    PApplet p;
+    public PApplet p;
     int pencilColor;
     boolean printMode;
     float pencilSpread;
@@ -384,6 +384,40 @@ public class PaperAndPencil {
         float increment = getFillIncrement();
         for (float d = 2; d < diameter; d += increment) {
             circle(centerX, centerY, d, false);
+        }
+    }
+
+    /**
+     * Fills a polygon defined by four vertices with a hatching pattern.
+     * Hatching is different from solid fill - it creates a series of almost-parallel lines
+     * that give the impression of shading.
+     * Lines are drawn parallel to the edge (x1, y1) - (x2, y2), spaced based on quality mode.
+     * 
+     * @param x1 x-coordinate of the first vertex
+     * @param y1 y-coordinate of the first vertex
+     * @param x2 x-coordinate of the second vertex
+     * @param y2 y-coordinate of the second vertex
+     * @param x3 x-coordinate of the third vertex
+     * @param y3 y-coordinate of the third vertex
+     * @param x4 x-coordinate of the fourth vertex
+     * @param y4 y-coordinate of the fourth vertex
+     */
+    public void hatchPolygon(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
+        float increment = getFillIncrement() / PApplet.dist(x1, y1, x2, y2);
+        for (float t = 0; t <= 1; t += increment) {
+            float startX = PApplet.lerp(x1, x4, t);
+            float startY = PApplet.lerp(y1, y4, t);
+            float endX = PApplet.lerp(x2, x3, t);
+            float endY = PApplet.lerp(y2, y3, t);
+
+            // sligthly randomize the start and end points y to avoid perfect parallel lines
+            // capped by polygon coords
+            startY += p.random(-getPencilSpreadForMode(), getPencilSpreadForMode());
+            startY = PApplet.constrain(startY, Math.min(y1, y4), Math.max(y1, y4));
+            endY += p.random(-getPencilSpreadForMode(), getPencilSpreadForMode());
+            endY = PApplet.constrain(endY, Math.min(y2, y4), Math.max(y2, y4));
+
+            line(startX, startY, endX, endY, false);
         }
     }
 

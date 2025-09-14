@@ -234,12 +234,24 @@ void drawExample() {
   }
   popMatrix();
 
+  println("  Hatch quadrilateral");
+  pushMatrix();
+  translate(margin, 9*margin + 8*size);
+  {
+    pp.hatchPolygon(size * 0.4, size * 0.4,
+                    size, 0,
+                    size * 0.8, size,
+                    size * 0.2, size);
+    labelText("Hatch quadrilateral", size/2, size + 20);
+  }
+  popMatrix();
+
   pp.resetMask();  // Reset mask for future drawings
   println("Finished drawExample()");
 }
 
 void setup() {
-  size(450, 1100, P2D);
+  size(450, 1200, P2D);
   colorMode(HSB, 360, 100, 100, 100);
   
   pp = new PaperAndPencil(this);
