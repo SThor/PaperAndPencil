@@ -1,39 +1,51 @@
 import paperandpencil.*;
+import processing.core.*;
 
 PaperAndPencil pp;
 float margin = 30;
 float size = 100;
 
+// Off-screen rendering (set true for deterministic full-size renders regardless of window)
+boolean USE_OFFSCREEN = true;
+PGraphics offscreen;
+int OFFSCREEN_WIDTH = 450;
+int OFFSCREEN_HEIGHT = 1200;
+// Active rendering surface (either g or offscreen)
+PGraphics pg;
+
 // Function to draw text with background
 void labelText(String txt, float x, float y) {
-  pushMatrix();
-  // Move to the label position
-  translate(x, y);
-  
-  float textW = textWidth(txt);
-  fill(360, 80);  // White background with some transparency
-  noStroke();
-  rect(-textW/2 - 5, -15, textW + 10, 20);
-  fill(0);
-  text(txt, 0, 0);
-  popMatrix();
+  pg.pushMatrix();
+  pg.translate(x, y);
+  float textW = pg.textWidth(txt);
+  pg.fill(360, 80);
+  pg.noStroke();
+  pg.rect(-textW/2 - 5, -15, textW + 10, 20);
+  pg.fill(0);
+  pg.text(txt, 0, 0);
+  pg.popMatrix();
 }
 
 void drawExample() {
   println("Starting drawExample()");
-  background(360);  // Clear the canvas with white
+  pg.beginDraw();
+  // Ensure off-screen buffer uses same color mode (HSB) as main sketch
+  pg.colorMode(HSB, 360, 100, 100, 100);
+  pg.background(360);
+  // Route PaperAndPencil to this graphics
+  pp.setTarget(pg);
   pp.paper();
   
   // Set text properties
-  textAlign(CENTER);
-  textSize(12);
+  pg.textAlign(CENTER);
+  pg.textSize(12);
   
   // Default pencil color
   pp.setPencilColor(color(0, 0, 0, 30));
   
   println("Drawing 1st row: Lines");
-  pushMatrix();
-  translate(margin, margin);
+  pg.pushMatrix();
+  pg.translate(margin, margin);
   {
     // Simple line
     println("  Drawing simple line");
@@ -42,15 +54,15 @@ void drawExample() {
 
     // Line with fade
     println("  Drawing line with fade");
-    translate(margin + size, 0);
+    pg.translate(margin + size, 0);
     pp.line(0, 0, size, size, true);
     labelText("Line with fade", size/2, size + 20);
   }
-  popMatrix();
+  pg.popMatrix();
   
   println("Drawing 2nd row: Circles");
-  pushMatrix();
-  translate(margin, 2*margin + size);
+  pg.pushMatrix();
+  pg.translate(margin, 2*margin + size);
   {
     // Simple circle
     println("  Drawing simple circle");
@@ -59,21 +71,21 @@ void drawExample() {
 
     // Circle with fade
     println("  Drawing circle with fade");
-    translate(margin + size, 0);
+    pg.translate(margin + size, 0);
     pp.circle(size/2, size/2, size, true);
     labelText("Circle with fade", size/2, size + 20);
 
     // Filled circle
     println("  Drawing filled circle");
-    translate(margin + size, 0);
+    pg.translate(margin + size, 0);
     pp.fillCircle(size/2, size/2, size);
     labelText("Filled circle", size/2, size + 20);
   }
-  popMatrix();
+  pg.popMatrix();
   
   println("Drawing 3rd row: Arcs");
-  pushMatrix();
-  translate(margin, 3*margin + 2*size);
+  pg.pushMatrix();
+  pg.translate(margin, 3*margin + 2*size);
   {
     // Simple arc
     println("  Drawing simple arc");
@@ -82,15 +94,15 @@ void drawExample() {
 
     // Arc with fade
     println("  Drawing arc with fade");
-    translate(margin + size, 0);
+    pg.translate(margin + size, 0);
     pp.arc(size/2, size/2, size, -QUARTER_PI, PI, true);
     labelText("Arc with fade", size/2, size + 20);
   }
-  popMatrix();
+  pg.popMatrix();
   
   println("Drawing 4th row: Rectangles");
-  pushMatrix();
-  translate(margin, 4*margin + 3*size);
+  pg.pushMatrix();
+  pg.translate(margin, 4*margin + 3*size);
   {
     // Simple rect
     println("  Drawing simple rect");
@@ -99,15 +111,15 @@ void drawExample() {
 
     // Filled rect
     println("  Drawing filled rect");
-    translate(margin + size, 0);
+    pg.translate(margin + size, 0);
     pp.fillRect(0, 0, size, size);
     labelText("Filled rect", size/2, size + 20);
   }
-  popMatrix();
+  pg.popMatrix();
   
   println("Drawing 5th row: Bézier curves");
-  pushMatrix();
-  translate(margin, 5*margin + 4*size);
+  pg.pushMatrix();
+  pg.translate(margin, 5*margin + 4*size);
   {
     float curveHeight = size/2;
     
@@ -122,7 +134,7 @@ void drawExample() {
 
     // Bezier with fade
     println("  Drawing bezier with fade");
-    translate(margin + size, 0);
+    pg.translate(margin + size, 0);
     pp.bezier(0, size/2,             // Start point
               size/3, 0,             // Control point 1
               2*size/3, size,        // Control point 2
@@ -130,11 +142,11 @@ void drawExample() {
               true);                 // With fade
     labelText("Bezier with fade", size/2, size + 20);
   }
-  popMatrix();
+  pg.popMatrix();
   
   println("Drawing 6th row: Splines");
-  pushMatrix();
-  translate(margin, 6*margin + 5*size);
+  pg.pushMatrix();
+  pg.translate(margin, 6*margin + 5*size);
   {
     // Simple spline
     println("  Drawing simple spline");
@@ -149,7 +161,7 @@ void drawExample() {
 
     // Full fade spline
     println("  Drawing full fade spline");
-    translate(margin + size, 0);
+    pg.translate(margin + size, 0);
     float[] fadePoints = {
       0, size/2,           // First point
       size/3, size/4,      // Second point
@@ -161,7 +173,7 @@ void drawExample() {
 
     // First segment fade spline
     println("  Drawing first segment fade spline");
-    translate(margin + size, 0);
+    pg.translate(margin + size, 0);
     float[] firstSegmentFadePoints = {
       0, size/2,           // First point
       size/3, size/4,      // Second point
@@ -171,11 +183,11 @@ void drawExample() {
     pp.spline(firstSegmentFadePoints, true, true);
     labelText("First segment fade", size/2, size + 20);
   }
-  popMatrix();
+  pg.popMatrix();
   
   println("Drawing 7th row: Masking examples");
-  pushMatrix();
-  translate(margin, 7*margin + 6*size);
+  pg.pushMatrix();
+  pg.translate(margin, 7*margin + 6*size);
   {
     // Hard mask (circular)
     println("  Creating circular mask");
@@ -196,7 +208,7 @@ void drawExample() {
     
     // Soft mask (gradient)
     println("  Creating gradient mask");
-    translate(margin + size, 0);
+    pg.translate(margin + size, 0);
     mask = pp.resetMask();
     mask.beginDraw();
     for (int y = 0; y < size; y++) {
@@ -219,24 +231,24 @@ void drawExample() {
     // Reset to no mask for future drawings
     mask = pp.resetMask();
   }
-  popMatrix();
+  pg.popMatrix();
 
   println("  Text drawing");
-  pushMatrix();
-  translate(margin, 8*margin + 7*size);
+  pg.pushMatrix();
+  pg.translate(margin, 8*margin + 7*size);
   {
-    int textSize = 13;
+    int textSize = 15;
     int spacing = 5;
     pp.text("0123456789", 0, 0, textSize);
     pp.text("abcdefghijklmnopqrstuvwxyz", 0, textSize + spacing, textSize);
     pp.text("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 0, 2 * (textSize + spacing), textSize);
     labelText("Text drawing example", size/2, size + 20);
   }
-  popMatrix();
+  pg.popMatrix();
 
   println("  Hatch quadrilateral");
-  pushMatrix();
-  translate(margin, 9*margin + 8*size);
+  pg.pushMatrix();
+  pg.translate(margin, 9*margin + 8*size);
   {
     pp.hatchPolygon(size * 0.4, size * 0.4,
                     size, 0,
@@ -244,33 +256,42 @@ void drawExample() {
                     size * 0.2, size);
     labelText("Hatch quadrilateral", size/2, size + 20);
   }
-  popMatrix();
+  pg.popMatrix();
 
   pp.resetMask();  // Reset mask for future drawings
   println("Finished drawExample()");
+  pg.endDraw();
+  // Detach target so accidental window drawing later isn't misrouted
+  pp.clearTarget();
 }
 
 void setup() {
-  size(450, 1200, P2D);
   colorMode(HSB, 360, 100, 100, 100);
   
   pp = new PaperAndPencil(this);
+  if (USE_OFFSCREEN) {
+    offscreen = createGraphics(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT, P2D);
+  offscreen.beginDraw();
+  offscreen.colorMode(HSB, 360, 100, 100, 100);
+  offscreen.endDraw();
+  }
+  pg = USE_OFFSCREEN ? offscreen : g;
   
   // Generate and save for each quality mode
   println("Drawing DRAFT quality...");
   pp.setQualityMode(PaperAndPencil.QualityMode.DRAFT);
   drawExample();
-  save("BasicExample_DRAFT.png");
+  pg.save("BasicExample_DRAFT.png");
   
   println("Drawing SCREEN quality...");
   pp.setQualityMode(PaperAndPencil.QualityMode.SCREEN);
   drawExample();
-  save("BasicExample_SCREEN.png");
+  pg.save("BasicExample_SCREEN.png");
   
   println("Drawing PRINT quality...");
   pp.setQualityMode(PaperAndPencil.QualityMode.PRINT);
   drawExample();
-  save("BasicExample_PRINT.png");
+  pg.save("BasicExample_PRINT.png");
   
   println("All examples completed");
   exit();
@@ -278,4 +299,12 @@ void setup() {
 
 void draw() {
   // Static sketch, no animation needed
+  if (USE_OFFSCREEN && offscreen != null) {
+    image(offscreen, 0, 0, width, height);
+  }
+}
+
+// Required for external (non-PDE) runs: size() must be in settings()
+void settings() {
+  size(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT, P2D);
 }

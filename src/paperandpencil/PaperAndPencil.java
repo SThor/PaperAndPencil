@@ -16,6 +16,8 @@ public class PaperAndPencil {
     float pencilSpread;
     PGraphics maskBuffer;
     boolean useMask = false;
+    // Optional drawing target (off-screen). When non-null, all rendering goes there instead of the main surface
+    private PGraphics target;
     
     public enum QualityMode {
         DRAFT,      // Fast rendering with fewer points
@@ -38,6 +40,21 @@ public class PaperAndPencil {
     }
 
     /**
+     * Sets an off-screen / alternative PGraphics target. All subsequent drawing commands
+     * will use this target until clearTarget() is called (or another target is set).
+     * Passing null reverts to the main sketch surface.
+     */
+    public void setTarget(PGraphics pg) {
+        this.target = pg;
+    }
+
+    /** Clear any previously set drawing target. */
+    public void clearTarget() { this.target = null; }
+
+    /** Returns currently active graphics context (target if set, else the main sketch surface). */
+    private PGraphics g() { return target != null ? target : p.g; }
+
+    /**
      * Initializes and returns the mask buffer for drawing.
      * When drawing, the mask's alpha channel is used to determine the opacity of the pencil strokes:
      * Anything transparent on the mask will allow the pencil strokes to show through.
@@ -51,8 +68,10 @@ public class PaperAndPencil {
      * @return The PGraphics object for the mask buffer
      */
     public PGraphics resetMask() {
-        if (this.maskBuffer == null) {
-            this.maskBuffer = p.createGraphics(p.width, p.height);
+        int w = (target != null ? target.width : p.width);
+        int h = (target != null ? target.height : p.height);
+        if (this.maskBuffer == null || this.maskBuffer.width != w || this.maskBuffer.height != h) {
+            this.maskBuffer = p.createGraphics(w, h);
         }
         this.maskBuffer.beginDraw();
         this.maskBuffer.clear();
@@ -139,22 +158,22 @@ public class PaperAndPencil {
         if (qualityMode == QualityMode.PRINT) {
             return;
         }
-
-        p.noStroke();
+        PGraphics g = g();
+        g.noStroke();
         int points = getPaperTexturePoints();
         
         for (int i = 0; i < points; ++i) {
-            p.fill(p.random(360), p.random(100f), p.random(100f), p.random(20f));
-            float x = p.random(p.width);
-            float y = p.random(p.height);
-            p.circle(x, y, p.random(2));
+            g.fill(p.random(360), p.random(100f), p.random(100f), p.random(20f));
+            float x = p.random(g.width);
+            float y = p.random(g.height);
+            g.circle(x, y, p.random(2));
         }
         
-        p.loadPixels();
-        for (int i = 0; i < p.pixels.length; i += 1) {
-            p.pixels[i] = p.lerpColor(p.pixels[i], p.color(360), p.random(0.5f));
+        g.loadPixels();
+        for (int i = 0; i < g.pixels.length; i += 1) {
+            g.pixels[i] = p.lerpColor(g.pixels[i], p.color(360), p.random(0.5f));
         }
-        p.updatePixels();
+        g.updatePixels();
     }
 
     /**
@@ -225,7 +244,8 @@ public class PaperAndPencil {
      * @param y y-coordinate of the dot
      */
     public void dot(float x, float y) {
-        if (x < 0 || x >= p.width || y < 0 || y >= p.height) return;
+    PGraphics g = g();
+    if (x < 0 || x >= g.width || y < 0 || y >= g.height) return;
 
         float opacity = 1.0f;
         if (useMask && maskBuffer != null) {
@@ -237,7 +257,7 @@ public class PaperAndPencil {
         }
 
         // Save current fill color
-        int originalFill = p.g.fillColor;
+        int originalFill = g.fillColor;
 
         float spread = getPencilSpreadForMode();
         float size = qualityMode == QualityMode.PRINT ? 1.5f : p.random(2);
@@ -250,21 +270,22 @@ public class PaperAndPencil {
             float a = p.alpha(pencilColor) * opacity; // Blend the alpha with mask opacity
             
             // Apply the modified alpha
-            p.fill(h, s, b, a);
+            g.fill(h, s, b, a);
         }
 
-        p.circle(x + p.random(spread), y + p.random(spread), size);
+        g.circle(x + p.random(spread), y + p.random(spread), size);
         
         // Restore original fill color
-        p.fill(originalFill);
+        g.fill(originalFill);
     }
 
     /**
      * Sets up the common drawing state used across drawing methods
      */
     private void setupDrawingState() {
-        p.noStroke();
-        p.fill(pencilColor);
+        PGraphics g = g();
+        g.noStroke();
+        g.fill(pencilColor);
     }
 
     /**
@@ -277,7 +298,8 @@ public class PaperAndPencil {
             // Apply curve to increase contrast - makes lights lighter and darks darker
             alpha = (float)Math.pow(alpha, 1.5);
         }
-        p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
+        PGraphics g = g();
+        g.fill(p.hue(pencilColor), p.saturation(pencilColor), 
             p.brightness(pencilColor), p.alpha(pencilColor) * alpha);
     }
 
@@ -435,7 +457,8 @@ public class PaperAndPencil {
     private void plotBezierCurve(float x1, float y1, float cx1, float cy1, 
                                 float cx2, float cy2, float x2, float y2, 
                                 boolean fade, float fadeStart, float fadeEnd) {
-        p.noStroke(); // Always disable stroke
+        PGraphics g = g();
+        g.noStroke(); // Always disable stroke
         
         float approxLength = PApplet.dist(x1, y1, cx1, cy1) + 
                            PApplet.dist(cx1, cy1, cx2, cy2) + 
@@ -445,13 +468,13 @@ public class PaperAndPencil {
         
         // If not fading, set the fill color once at the start
         if (!fade) {
-            p.fill(pencilColor);
+            g.fill(pencilColor);
         }
         
         for (float t = 0; t <= 1; t += increment) {
             if (fade) {
                 float fadeProgress = fadeStart + (fadeEnd - fadeStart) * t;
-                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
+                g.fill(p.hue(pencilColor), p.saturation(pencilColor), 
                     p.brightness(pencilColor), 
                     p.alpha(pencilColor) * fadeProgress);
             }
