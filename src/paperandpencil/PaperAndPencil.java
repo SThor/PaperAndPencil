@@ -508,4 +508,119 @@ public class PaperAndPencil {
             currentSegment++;
         }
     }
+
+    /**
+     * Draws text at the specified position using the pencil effect.
+     * Alphabet is very limited at the moment and only supports 0-9 and some uppercase letters.
+     * 
+     * @param txt The text string to draw
+     * @param x x-coordinate of the text position
+     * @param y y-coordinate of the text position
+     */
+    public void text(String txt, float x, float y, float size) {
+        if (txt == null || txt.length() == 0) return;
+        float spacing = 2;      // Spacing between characters
+        float currentX = x;
+
+        for (int i = 0; i < txt.length(); i++) {
+            char c = txt.charAt(i);
+            currentX = x + i * (size * 0.75f + spacing);
+            if (c >= 'A' && c <= 'Z') {
+                // Uppercase letters
+                if (c == 'A') {
+                    line(currentX + size*0.5f, y, currentX + size*0.25f, y + size, false);
+                    line(currentX + size*0.5f, y, currentX + size*0.75f, y + size, false);
+                    line(currentX + size*0.25f, y + size*0.75f, currentX + size*0.75f, y + size*0.75f, false);
+                    continue;
+                } else if (c == 'B') {
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size, false);
+                    arc(currentX + size*0.5f, y + size*0.25f, size*0.5f, -PConstants.PI/2, PConstants.PI/2, false);
+                    arc(currentX + size*0.5f, y + size*0.75f, size*0.5f, -PConstants.PI/2, PConstants.PI/2, false);
+                    // horizontal lines to close the loops
+                    line(currentX + size*0.25f, y, currentX + size*0.5f, y, false);
+                    line(currentX + size*0.25f, y + size*0.5f, currentX + size*0.5f, y + size*0.5f, false);
+                    line(currentX + size*0.25f, y + size, currentX + size*0.5f, y + size, false);
+                    continue;
+                } else if (c == 'D') {
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size, false);
+                    arc(currentX + size/4, y + size/2, size, -PConstants.PI/2, PConstants.PI/2, false);
+                    continue;
+                } else if (c == 'F') {
+                    line(currentX + size*0.75f, y, currentX + size*0.25f, y, false);
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size, false);
+                    line(currentX + size*0.75f, y + size*0.5f, currentX + size*0.25f, y + size*0.5f, false);
+                    continue;
+                } else if (c == 'L') {
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size, false);
+                    line(currentX + size*0.25f, y + size, currentX + size*0.75f, y + size, false);
+                    continue;
+                } else if (c == 'R') {
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size, false);
+                    arc(currentX + size/2, y + size*0.25f, size/2, -PConstants.PI/2, PConstants.PI/2, false);
+                    line(currentX + size*0.25f, y + size*0.5f, currentX + size*0.75f, y + size, false);
+                    // horizontal lines to close the loop
+                    line(currentX + size*0.25f, y, currentX + size*0.5f, y, false);
+                    line(currentX + size*0.25f, y + size*0.5f, currentX + size*0.5f, y + size*0.5f, false);
+                    continue;
+                } else if (c == 'U') {
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size*0.75f, false);
+                    line(currentX + size*0.75f, y, currentX + size*0.75f, y + size*0.75f, false);
+                    arc(currentX + size/2, y + size*0.75f, size/2, 0, PConstants.PI, false);
+                    continue;
+                }
+                fillRect(currentX, y, size, size);
+            } else if (c >= 'a' && c <= 'z') {
+                // Lowercase letters
+                fillRect(currentX, y, size, size);
+            } else if (c >= '0' && c <= '9') {
+                // Digits
+                if (c == '0') {
+                    circle(currentX + size/2, y + size/2, size, false);
+                    // diagonal line to distinguish from 'O'
+                    line(currentX + size*0.3f, y + size*0.7f, currentX + size*0.7f, y + size*0.3f, false);
+                    continue;
+                } else if (c == '1') {
+                    line(currentX + size/2, y, currentX + size/2, y + size, false);
+                    continue;
+                } else if (c == '2') {
+                    arc(currentX + size/2, y + size/4, size/2, PConstants.PI, PConstants.PI * 2, false);
+                    line(currentX + size*0.75f, y + size/4, currentX + size*0.25f, y + size, false);
+                    line(currentX + size*0.25f, y + size, currentX + size*0.75f, y + size, false);
+                    continue;
+                } else if (c == '3') {
+                    arc(currentX + size/2, y + size/4, size/2, -3*PConstants.PI/4, PConstants.PI/2, false);
+                    arc(currentX + size/2, y + size*0.75f, size/2, -PConstants.PI/2, 3*PConstants.PI/4, false);
+                    continue;
+                } else if (c == '4') {
+                    line(currentX + size*0.75f, y, currentX + size*0.75f, y + size, false);
+                    line(currentX + size*0.25f, y + size*0.75f, currentX + size*0.75f, y + size*0.75f, false);
+                    line(currentX + size*0.75f, y, currentX + size*0.25f, y + size*0.75f, false);
+                    continue;
+                } else if (c == '5') {
+                    line(currentX + size*0.25f, y, currentX + size*0.75f, y, false);
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size*0.5f, false);
+                    line(currentX + size*0.25f, y + size*0.5f, currentX + size*0.5f, y + size*0.5f, false);
+                    arc(currentX + size/2, y + size*0.75f, size/2, -PConstants.PI/2, PConstants.PI, false);
+                    continue;
+                } else if (c == '6') {
+                    circle(currentX + size*0.5f, y + size*0.75f, size*0.5f, false);
+                    line(currentX + size*0.3f, y + size*0.7f, currentX + size*0.5f, y, false);
+                    continue;
+                } else if (c == '7') {
+                    line(currentX + size*0.25f, y, currentX + size*0.75f, y, false);
+                    line(currentX + size*0.75f, y, currentX + size*0.5f, y + size, false);
+                    continue;
+                } else if (c == '8') {
+                    circle(currentX + size*0.5f, y + size*0.25f, size*0.5f, false);
+                    circle(currentX + size*0.5f, y + size*0.75f, size*0.5f, false);
+                    continue;
+                } else if (c == '9') {
+                    circle(currentX + size*0.5f, y + size*0.25f, size*0.5f, false);
+                    line(currentX + size*0.7f, y + size*0.3f, currentX + size*0.5f, y + size, false);
+                    continue;
+                }
+                fillRect(currentX, y, size, size);
+            }
+        }
+    }
 }

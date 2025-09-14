@@ -215,6 +215,22 @@ void drawExample() {
       pp.line(x, 0, x, size, false);
     }
     labelText("Soft mask", size/2, size + 20);
+
+    // Reset to no mask for future drawings
+    mask = pp.resetMask();
+  }
+  popMatrix();
+
+  println("  Text drawing");
+  pushMatrix();
+  translate(margin, 8*margin + 7*size);
+  {
+    int textSize = 13;
+    int spacing = 5;
+    pp.text("0123456789", 0, 0, textSize);
+    pp.text("abcdefghijklmnopqrstuvwxyz", 0, textSize + spacing, textSize);
+    pp.text("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 0, 2 * (textSize + spacing), textSize);
+    labelText("Text drawing example", size/2, size + 20);
   }
   popMatrix();
 
@@ -223,7 +239,7 @@ void drawExample() {
 }
 
 void setup() {
-  size(450, 950, P2D);
+  size(450, 1100, P2D);
   colorMode(HSB, 360, 100, 100, 100);
   
   pp = new PaperAndPencil(this);
