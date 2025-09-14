@@ -1,6 +1,8 @@
 package paperandpencil;
 
 import processing.core.PApplet;
+import processing.core.PConstants;
+import processing.core.PGraphics;
 
 /**
  * PaperAndPencil provides utilities for creating paper-like textures and pencil-like drawing effects
@@ -8,11 +10,23 @@ import processing.core.PApplet;
  * randomness and imperfection to standard geometric shapes.
  */
 public class PaperAndPencil {
-    PApplet p;
+    public PApplet p;
     int pencilColor;
     boolean printMode;
     float pencilSpread;
+    PGraphics maskBuffer;
+    boolean useMask = false;
+    // Optional drawing target (off-screen). When non-null, all rendering goes there instead of the main surface
+    private PGraphics target;
     
+    public enum QualityMode {
+        DRAFT,      // Fast rendering with fewer points
+        SCREEN,     // Normal screen quality
+        PRINT       // High quality for print output
+    }
+    
+    private QualityMode qualityMode = QualityMode.SCREEN;
+
     /**
      * Creates a new PaperAndPencil instance.
      * 
@@ -24,24 +38,142 @@ public class PaperAndPencil {
         this.printMode = false;
         this.pencilSpread = 2f;
     }
+
+    /**
+     * Sets an off-screen / alternative PGraphics target. All subsequent drawing commands
+     * will use this target until clearTarget() is called (or another target is set).
+     * Passing null reverts to the main sketch surface.
+     */
+    public void setTarget(PGraphics pg) {
+        this.target = pg;
+    }
+
+    /** Clear any previously set drawing target. */
+    public void clearTarget() { this.target = null; }
+
+    /** Returns currently active graphics context (target if set, else the main sketch surface). */
+    private PGraphics g() { return target != null ? target : p.g; }
+
+    /**
+     * Initializes and returns the mask buffer for drawing.
+     * When drawing, the mask's alpha channel is used to determine the opacity of the pencil strokes:
+     * Anything transparent on the mask will allow the pencil strokes to show through.
+     * Anything opaque will block the pencil strokes.
+     * The opacity of the mask is set to 0 (fully transparent). 
+     * 
+     * The mask won't actually be used until useMask() is called.
+     * 
+     * @see #useMask()
+     * 
+     * @return The PGraphics object for the mask buffer
+     */
+    public PGraphics resetMask() {
+        int w = (target != null ? target.width : p.width);
+        int h = (target != null ? target.height : p.height);
+        if (this.maskBuffer == null || this.maskBuffer.width != w || this.maskBuffer.height != h) {
+            this.maskBuffer = p.createGraphics(w, h);
+        }
+        this.maskBuffer.beginDraw();
+        this.maskBuffer.clear();
+        this.useMask = false;
+        return this.maskBuffer;
+    }
+
+    /**
+     * Ends the mask drawing. From this point, the mask will be used to control the opacity of pencil strokes.
+     * resetMask() must be called first to create the mask buffer.
+     */
+    public void useMask() {
+        if (this.maskBuffer == null) {
+            System.err.println("Error: No mask buffer created. Call resetMask() first.");
+            return;
+        }
+        this.maskBuffer.endDraw();
+        this.useMask = true;
+    }
     
+    /**
+     * Sets the rendering quality mode
+     * @param mode DRAFT for fast preview, SCREEN for normal display, PRINT for high quality output
+     */
+    public void setQualityMode(QualityMode mode) {
+        this.qualityMode = mode;
+        this.printMode = (mode == QualityMode.PRINT); // Maintain backward compatibility
+    }
+    
+    /**
+     * Calculate increment size for drawing operations based on quality mode
+     */
+    private float getIncrement(float baseSize) {
+        float base;
+        switch(qualityMode) {
+            case DRAFT:
+                base = 0.4f;    // Fewer points for speed
+                break;
+            case PRINT:
+                base = 0.1f;    // Slightly denser for print
+                break;
+            case SCREEN:
+            default:
+                base = 0.15f;  // Normal density
+                break;
+        }
+        return base / baseSize;
+    }
+    
+    /**
+     * Calculate fill pattern increment based on quality mode
+     */
+    private float getFillIncrement() {
+        switch(qualityMode) {
+            case DRAFT:
+                return 3.0f;   // Larger gaps for speed
+            case PRINT:
+                return 0.8f;   // Tighter gaps for more solid fill
+            case SCREEN:
+            default:
+                return 1.2f;  // Normal gaps
+        }
+    }
+    
+    /**
+     * Calculate number of paper texture points based on quality mode
+     */
+    private int getPaperTexturePoints() {
+        switch(qualityMode) {
+            case DRAFT:
+                return 10000;
+            case SCREEN:
+            default:
+                return 100000;
+        }
+    }
+
     /**
      * Creates a textured paper background effect by randomly placing small colored circles
      * and then applying a lightening effect to create a natural paper texture.
      */
     public void paper() {
-        p.noStroke();
-        for (int i = 0; i < 100000; ++i) {
-            p.fill(p.random(360), p.random(100), p.random(100), p.random(20));
-            float x = p.random(p.width);
-            float y = p.random(p.height);
-            p.circle(x, y, p.random(2));
+        // Skip paper texture in PRINT mode since we'll be printing to real paper
+        if (qualityMode == QualityMode.PRINT) {
+            return;
         }
-        p.loadPixels();
-        for (int i = 0; i < p.pixels.length; i += 1) {
-            p.pixels[i] = p.lerpColor(p.pixels[i], p.color(360), p.random(.5f));
+        PGraphics g = g();
+        g.noStroke();
+        int points = getPaperTexturePoints();
+        
+        for (int i = 0; i < points; ++i) {
+            g.fill(p.random(360), p.random(100f), p.random(100f), p.random(20f));
+            float x = p.random(g.width);
+            float y = p.random(g.height);
+            g.circle(x, y, p.random(2));
         }
-        p.updatePixels();
+        
+        g.loadPixels();
+        for (int i = 0; i < g.pixels.length; i += 1) {
+            g.pixels[i] = p.lerpColor(g.pixels[i], p.color(360), p.random(0.5f));
+        }
+        g.updatePixels();
     }
 
     /**
@@ -62,6 +194,11 @@ public class PaperAndPencil {
         return this.pencilColor;
     }
 
+    /**
+     * Sets the spread of the pencil strokes. Higher values create a more textured effect.
+     * 
+     * @param spread The spread value (default is 2.0)
+     */
     public void setPencilSpread(float spread) {
         this.pencilSpread = spread;
     }
@@ -85,11 +222,85 @@ public class PaperAndPencil {
      * @param fade if true, applies a fade effect to the stroke
      */
     public void circle(float centerX, float centerY, float diameter, boolean fade) {
-        arc(centerX, centerY, diameter, 0, p.TWO_PI, fade);
+        arc(centerX, centerY, diameter, 0, PConstants.TWO_PI, fade);
     }
 
+    private float getPencilSpreadForMode() {
+        switch(qualityMode) {
+            case DRAFT:
+                return pencilSpread * 1.5f;  // More spread for faster, rougher preview
+            case PRINT:
+                return pencilSpread * 0.3f;  // Much less spread for cleaner print output
+            case SCREEN:
+            default:
+                return pencilSpread;        // Normal spread
+        }
+    }
+
+    /**
+     * Draws a dot with a pencil-like effect at the specified coordinates, with random spread and optional masking.
+     * 
+     * @param x x-coordinate of the dot
+     * @param y y-coordinate of the dot
+     */
     public void dot(float x, float y) {
-        p.circle(x + p.random(this.pencilSpread), y + p.random(this.pencilSpread), p.random(2));
+    PGraphics g = g();
+    if (x < 0 || x >= g.width || y < 0 || y >= g.height) return;
+
+        float opacity = 1.0f;
+        if (useMask && maskBuffer != null) {
+            // Get the alpha channel value from the mask (0-255)
+            int maskAlpha = (maskBuffer.get((int)x, (int)y) >> 24) & 0xFF;
+            // Convert to 0-1 range and use it to scale our opacity
+            opacity = 1f - (maskAlpha / 255.0f);
+            if (opacity == 0) return; // Skip fully masked pixels
+        }
+
+        // Save current fill color
+        int originalFill = g.fillColor;
+
+        float spread = getPencilSpreadForMode();
+        float size = qualityMode == QualityMode.PRINT ? 1.5f : p.random(2);
+
+        if (opacity < 1f) {
+            // Get the current fill color's components
+            float h = p.hue(pencilColor);
+            float s = p.saturation(pencilColor);
+            float b = p.brightness(pencilColor);
+            float a = p.alpha(pencilColor) * opacity; // Blend the alpha with mask opacity
+            
+            // Apply the modified alpha
+            g.fill(h, s, b, a);
+        }
+
+        g.circle(x + p.random(spread), y + p.random(spread), size);
+        
+        // Restore original fill color
+        g.fill(originalFill);
+    }
+
+    /**
+     * Sets up the common drawing state used across drawing methods
+     */
+    private void setupDrawingState() {
+        PGraphics g = g();
+        g.noStroke();
+        g.fill(pencilColor);
+    }
+
+    /**
+     * Sets the fill color with a specific alpha value while preserving the current color's other components.
+     * In print mode, applies contrast enhancement to make lights lighter and darks darker.
+     */
+    private void setFillWithAlpha(float alpha) {
+        // In print mode, apply non-linear contrast enhancement
+        if (qualityMode == QualityMode.PRINT) {
+            // Apply curve to increase contrast - makes lights lighter and darks darker
+            alpha = (float)Math.pow(alpha, 1.5);
+        }
+        PGraphics g = g();
+        g.fill(p.hue(pencilColor), p.saturation(pencilColor), 
+            p.brightness(pencilColor), p.alpha(pencilColor) * alpha);
     }
 
     /**
@@ -103,20 +314,30 @@ public class PaperAndPencil {
      * @param fade if true, applies a fade effect to the stroke
      */
     public void arc(float centerX, float centerY, float diameter, float startAngle, float endAngle, boolean fade) {
-        p.noStroke();
-        p.fill(pencilColor);
+        setupDrawingState();
         float x, y;
+        float baseIncrement;
+        switch(qualityMode) {
+            case DRAFT:
+                baseIncrement = 0.6f;
+                break;
+            case PRINT:
+                baseIncrement = 0.15f;
+                break;
+            case SCREEN:
+            default:
+                baseIncrement = 0.3f;
+                break;
+        }
         
-        for (float theta = startAngle; theta < endAngle; theta += 0.3f/diameter) {
+        for (float theta = startAngle; theta < endAngle; theta += baseIncrement/diameter) {
             if (fade) {
                 float fadeProgress = (theta - startAngle) / (endAngle - startAngle);
-                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
-                    p.brightness(pencilColor), 
-                    p.alpha(pencilColor) * fadeProgress);
+                setFillWithAlpha(fadeProgress);
             }
             
-            x = centerX + diameter/2 * p.cos(theta);
-            y = centerY + diameter/2 * p.sin(theta);
+            x = centerX + diameter/2 * PApplet.cos(theta);
+            y = centerY + diameter/2 * PApplet.sin(theta);
             dot(x, y);
         }
     }
@@ -131,21 +352,18 @@ public class PaperAndPencil {
      * @param fade if true, applies a fade effect from start to end
      */
     public void line(float x1, float y1, float x2, float y2, boolean fade) {
-        p.noStroke();
-        p.fill(pencilColor);
+        setupDrawingState();
         
         float x, y;
-        float increment = 0.15f / p.dist(x1, y1, x2, y2);
+        float increment = getIncrement(PApplet.dist(x1, y1, x2, y2));
         
         for (float amt = 0; amt < 1; amt += increment) {
             if (fade) {
-                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
-                    p.brightness(pencilColor), 
-                    p.alpha(pencilColor) * amt);
+                setFillWithAlpha(amt);
             }
             
-            x = p.lerp(x1, x2, amt);
-            y = p.lerp(y1, y2, amt);
+            x = PApplet.lerp(x1, x2, amt);
+            y = PApplet.lerp(y1, y2, amt);
             dot(x, y);
         }
     }
@@ -166,10 +384,9 @@ public class PaperAndPencil {
     }
 
     public void fillRect(float leftX, float topY, float width, float height) {
-        float increment = 4f;//printMode ? 1.3f : 1.2f;
+        float increment = getFillIncrement();
         float centerX = leftX + (width / 2);
         float centerY = topY + (height / 2);
-        // draw some bigger and bigger rectangles until the whole area is filled
         for (float size = 2; size < Math.max(width, height); size += increment) {
             float rectWidth = Math.min(size, width);
             float rectHeight = Math.min(size, height);
@@ -179,16 +396,50 @@ public class PaperAndPencil {
 
     /**
      * Fills a circle with concentric pencil circles to create a filled effect.
-     * The spacing between circles is adjusted based on print mode.
+     * The spacing between circles is adjusted based on quality mode.
      * 
      * @param centerX x-coordinate of the circle center
      * @param centerY y-coordinate of the circle center
      * @param diameter diameter of the circle
      */
     public void fillCircle(float centerX, float centerY, float diameter) {
-        float increment = printMode ? 1.3f : 1.2f;
+        float increment = getFillIncrement();
         for (float d = 2; d < diameter; d += increment) {
             circle(centerX, centerY, d, false);
+        }
+    }
+
+    /**
+     * Fills a polygon defined by four vertices with a hatching pattern.
+     * Hatching is different from solid fill - it creates a series of almost-parallel lines
+     * that give the impression of shading.
+     * Lines are drawn parallel to the edge (x1, y1) - (x2, y2), spaced based on quality mode.
+     * 
+     * @param x1 x-coordinate of the first vertex
+     * @param y1 y-coordinate of the first vertex
+     * @param x2 x-coordinate of the second vertex
+     * @param y2 y-coordinate of the second vertex
+     * @param x3 x-coordinate of the third vertex
+     * @param y3 y-coordinate of the third vertex
+     * @param x4 x-coordinate of the fourth vertex
+     * @param y4 y-coordinate of the fourth vertex
+     */
+    public void hatchPolygon(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
+        float increment = getFillIncrement() / PApplet.dist(x1, y1, x2, y2);
+        for (float t = 0; t <= 1; t += increment) {
+            float startX = PApplet.lerp(x1, x4, t);
+            float startY = PApplet.lerp(y1, y4, t);
+            float endX = PApplet.lerp(x2, x3, t);
+            float endY = PApplet.lerp(y2, y3, t);
+
+            // sligthly randomize the start and end points y to avoid perfect parallel lines
+            // capped by polygon coords
+            startY += p.random(-getPencilSpreadForMode(), getPencilSpreadForMode());
+            startY = PApplet.constrain(startY, Math.min(y1, y4), Math.max(y1, y4));
+            endY += p.random(-getPencilSpreadForMode(), getPencilSpreadForMode());
+            endY = PApplet.constrain(endY, Math.min(y2, y4), Math.max(y2, y4));
+
+            line(startX, startY, endX, endY, false);
         }
     }
 
@@ -206,22 +457,26 @@ public class PaperAndPencil {
     private void plotBezierCurve(float x1, float y1, float cx1, float cy1, 
                                 float cx2, float cy2, float x2, float y2, 
                                 boolean fade, float fadeStart, float fadeEnd) {
-        p.noStroke();
-        p.fill(pencilColor);
+        PGraphics g = g();
+        g.noStroke(); // Always disable stroke
         
-        // Approximate curve length by using the polygon length of control points
-        float approxLength = p.dist(x1, y1, cx1, cy1) + 
-                           p.dist(cx1, cy1, cx2, cy2) + 
-                           p.dist(cx2, cy2, x2, y2);
+        float approxLength = PApplet.dist(x1, y1, cx1, cy1) + 
+                           PApplet.dist(cx1, cy1, cx2, cy2) + 
+                           PApplet.dist(cx2, cy2, x2, y2);
         
-        // Scale increment based on approximate curve length and print mode
-        float increment = (printMode ? 0.075f : 0.15f) / approxLength;
+        float increment = getIncrement(approxLength);
+        
+        // If not fading, set the fill color once at the start
+        if (!fade) {
+            g.fill(pencilColor);
+        }
         
         for (float t = 0; t <= 1; t += increment) {
             if (fade) {
-                float alpha = calculateFadeAlpha(t, fadeStart, fadeEnd);
-                p.fill(p.hue(pencilColor), p.saturation(pencilColor), 
-                    p.brightness(pencilColor), alpha);
+                float fadeProgress = fadeStart + (fadeEnd - fadeStart) * t;
+                g.fill(p.hue(pencilColor), p.saturation(pencilColor), 
+                    p.brightness(pencilColor), 
+                    p.alpha(pencilColor) * fadeProgress);
             }
             
             float x = p.bezierPoint(x1, cx1, cx2, x2, t);
@@ -308,6 +563,121 @@ public class PaperAndPencil {
                 bezierSegment(x1, y1, cx1, cy1, cx2, cy2, x2, y2, fade, fadeStart, fadeEnd);
             }
             currentSegment++;
+        }
+    }
+
+    /**
+     * Draws text at the specified position using the pencil effect.
+     * Alphabet is very limited at the moment and only supports 0-9 and some uppercase letters.
+     * 
+     * @param txt The text string to draw
+     * @param x x-coordinate of the text position
+     * @param y y-coordinate of the text position
+     */
+    public void text(String txt, float x, float y, float size) {
+        if (txt == null || txt.length() == 0) return;
+        float spacing = 2;      // Spacing between characters
+        float currentX = x;
+
+        for (int i = 0; i < txt.length(); i++) {
+            char c = txt.charAt(i);
+            currentX = x + i * (size * 0.75f + spacing);
+            if (c >= 'A' && c <= 'Z') {
+                // Uppercase letters
+                if (c == 'A') {
+                    line(currentX + size*0.5f, y, currentX + size*0.25f, y + size, false);
+                    line(currentX + size*0.5f, y, currentX + size*0.75f, y + size, false);
+                    line(currentX + size*0.25f, y + size*0.75f, currentX + size*0.75f, y + size*0.75f, false);
+                    continue;
+                } else if (c == 'B') {
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size, false);
+                    arc(currentX + size*0.5f, y + size*0.25f, size*0.5f, -PConstants.PI/2, PConstants.PI/2, false);
+                    arc(currentX + size*0.5f, y + size*0.75f, size*0.5f, -PConstants.PI/2, PConstants.PI/2, false);
+                    // horizontal lines to close the loops
+                    line(currentX + size*0.25f, y, currentX + size*0.5f, y, false);
+                    line(currentX + size*0.25f, y + size*0.5f, currentX + size*0.5f, y + size*0.5f, false);
+                    line(currentX + size*0.25f, y + size, currentX + size*0.5f, y + size, false);
+                    continue;
+                } else if (c == 'D') {
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size, false);
+                    arc(currentX + size/4, y + size/2, size, -PConstants.PI/2, PConstants.PI/2, false);
+                    continue;
+                } else if (c == 'F') {
+                    line(currentX + size*0.75f, y, currentX + size*0.25f, y, false);
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size, false);
+                    line(currentX + size*0.75f, y + size*0.5f, currentX + size*0.25f, y + size*0.5f, false);
+                    continue;
+                } else if (c == 'L') {
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size, false);
+                    line(currentX + size*0.25f, y + size, currentX + size*0.75f, y + size, false);
+                    continue;
+                } else if (c == 'R') {
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size, false);
+                    arc(currentX + size/2, y + size*0.25f, size/2, -PConstants.PI/2, PConstants.PI/2, false);
+                    line(currentX + size*0.25f, y + size*0.5f, currentX + size*0.75f, y + size, false);
+                    // horizontal lines to close the loop
+                    line(currentX + size*0.25f, y, currentX + size*0.5f, y, false);
+                    line(currentX + size*0.25f, y + size*0.5f, currentX + size*0.5f, y + size*0.5f, false);
+                    continue;
+                } else if (c == 'U') {
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size*0.75f, false);
+                    line(currentX + size*0.75f, y, currentX + size*0.75f, y + size*0.75f, false);
+                    arc(currentX + size/2, y + size*0.75f, size/2, 0, PConstants.PI, false);
+                    continue;
+                }
+                fillRect(currentX, y, size, size);
+            } else if (c >= 'a' && c <= 'z') {
+                // Lowercase letters
+                fillRect(currentX, y, size, size);
+            } else if (c >= '0' && c <= '9') {
+                // Digits
+                if (c == '0') {
+                    circle(currentX + size/2, y + size/2, size, false);
+                    // diagonal line to distinguish from 'O'
+                    line(currentX + size*0.3f, y + size*0.7f, currentX + size*0.7f, y + size*0.3f, false);
+                    continue;
+                } else if (c == '1') {
+                    line(currentX + size/2, y, currentX + size/2, y + size, false);
+                    continue;
+                } else if (c == '2') {
+                    arc(currentX + size/2, y + size/4, size/2, PConstants.PI, PConstants.PI * 2, false);
+                    line(currentX + size*0.75f, y + size/4, currentX + size*0.25f, y + size, false);
+                    line(currentX + size*0.25f, y + size, currentX + size*0.75f, y + size, false);
+                    continue;
+                } else if (c == '3') {
+                    arc(currentX + size/2, y + size/4, size/2, -3*PConstants.PI/4, PConstants.PI/2, false);
+                    arc(currentX + size/2, y + size*0.75f, size/2, -PConstants.PI/2, 3*PConstants.PI/4, false);
+                    continue;
+                } else if (c == '4') {
+                    line(currentX + size*0.75f, y, currentX + size*0.75f, y + size, false);
+                    line(currentX + size*0.25f, y + size*0.75f, currentX + size*0.75f, y + size*0.75f, false);
+                    line(currentX + size*0.75f, y, currentX + size*0.25f, y + size*0.75f, false);
+                    continue;
+                } else if (c == '5') {
+                    line(currentX + size*0.25f, y, currentX + size*0.75f, y, false);
+                    line(currentX + size*0.25f, y, currentX + size*0.25f, y + size*0.5f, false);
+                    line(currentX + size*0.25f, y + size*0.5f, currentX + size*0.5f, y + size*0.5f, false);
+                    arc(currentX + size/2, y + size*0.75f, size/2, -PConstants.PI/2, PConstants.PI, false);
+                    continue;
+                } else if (c == '6') {
+                    circle(currentX + size*0.5f, y + size*0.75f, size*0.5f, false);
+                    line(currentX + size*0.3f, y + size*0.7f, currentX + size*0.5f, y, false);
+                    continue;
+                } else if (c == '7') {
+                    line(currentX + size*0.25f, y, currentX + size*0.75f, y, false);
+                    line(currentX + size*0.75f, y, currentX + size*0.5f, y + size, false);
+                    continue;
+                } else if (c == '8') {
+                    circle(currentX + size*0.5f, y + size*0.25f, size*0.5f, false);
+                    circle(currentX + size*0.5f, y + size*0.75f, size*0.5f, false);
+                    continue;
+                } else if (c == '9') {
+                    circle(currentX + size*0.5f, y + size*0.25f, size*0.5f, false);
+                    line(currentX + size*0.7f, y + size*0.3f, currentX + size*0.5f, y + size, false);
+                    continue;
+                }
+                fillRect(currentX, y, size, size);
+            }
         }
     }
 }
